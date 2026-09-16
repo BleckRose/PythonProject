@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Корзина | MODA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header>
+        <div class="container header-inner">
+            <a href="index.html" class="logo">MO<span>DA</span></a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Главная</a></li>
+                    <li><a href="index.html#catalog">Каталог</a></li>
+                    <li><a href="/favorites">Избранное</a></li>
+                    <li><a href="/orders">Мои заказы</a></li>
+                </ul>
+            </nav>
+            <div class="header-icons">
+                <span class="user-greeting"></span>
+                <a href="/favorites" title="Избранное">♡<span class="counter fav-counter" style="display:none;">0</span></a>
+                <a href="/cart" title="Корзина">🛒<span class="counter cart-counter" style="display:none;">0</span></a>
+                <a href="/login" class="login-link" title="Войти">👤</a>
+                <a href="#" class="logout-link" onclick="handleLogout(event)" title="Выйти" style="display:none;">🚪</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="cart-section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Корзина</h2>
+                    <p>Проверьте товары перед оформлением</p>
+                    <div class="divider"></div>
+                </div>
+
+                <div id="cartContent"></div>
+            </div>
+        </section>
+    </main>
+
+    <!--окно оплаты покато чтоделала не через реальную оплату, пока что только такое для теста-->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal">
+            <h3>Оформление заказа</h3>
+            <p class="modal-subtitle">Выберите способ оплаты</p>
+
+            <div class="payment-options" id="paymentOptions">
+                <label class="payment-option selected">
+                    <input type="radio" name="payment" value="card" checked>
+                    <span>Банковская карта</span>
+                    <span class="icon">💳</span>
+                </label>
+                <label class="payment-option">
+                    <input type="radio" name="payment" value="cash">
+                    <span>Наличными при получении</span>
+                    <span class="icon">💵</span>
+                </label>
+                <label class="payment-option">
+                    <input type="radio" name="payment" value="online">
+                    <span>Онлайн-кошелёк</span>
+                    <span class="icon">📱</span>
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closePaymentModal()">Отмена</button>
+                <button class="btn btn-gold" onclick="confirmOrder()">Оплатить</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4>MODA</h4>
+                    <p>Магазин стильной одежды для тех, кто ценит качество.</p>
+                </div>
+                <div class="footer-col"><h4>Покупателям</h4>
+                    <ul><li><a href="/cart">Корзина</a></li><li><a href="/favorites">Избранное</a></li><li><a href="/orders">Мои заказы</a></li></ul>
+                </div>
+                <div class="footer-col"><h4>Аккаунт</h4>
+                    <ul><li><a href="/login">Вход</a></li><li><a href="/register">Регистрация</a></li></ul>
+                </div>
+                <div class="footer-col"><h4>Контакты</h4>
+                    <p>Москва, ул. Тверская, 12<br>+7 (495) 123-45-67</p>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom"><div class="container">© 2026 MODA. Все права защищены.</div></div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function renderCart() {
+            const cart = getCart();
+            const container = document.getElementById('cartContent');
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🛒</div>
+                        <h3>Корзина пуста</h3>
+                        <p>Добавьте товары из каталога, чтобы оформить заказ</p>
+                        <a href="index.html" class="btn">Перейти в каталог</a>
+                    </div>`;
+                return;
+            }
+
+            const items = cart.map(item => {
+                const p = getProduct(item.id);
+                if (!p) return '';
+                return `
+                    <div class="cart-item">
+                        <div class="cart-item-image"><img src="${p.image}" alt="${p.name}"></div>
+                        <div class="cart-item-info">
+                            <h3>${p.name}</h3>
+                            <div class="cat">${p.category}</div>
+                            <div class="cart-item-price">${formatPrice(p.price * item.quantity)}</div>
+                        </div>
+                        <div class="quantity-control">
+                            <button onclick="changeQty(${p.id}, -1)">−</button>
+                            <span>${item.quantity}</span>
+                            <button onclick="changeQty(${p.id}, 1)">+</button>
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart(${p.id})" title="Удалить">✕</button>
+                    </div>`;
+            }).join('');
+
+            const subtotal = cart.reduce((s, i) => {
+                const p = getProduct(i.id);
+                return s + (p ? p.price * i.quantity : 0);
+            }, 0);
+            const delivery = subtotal > 10000 ? 0 : 490;
+
+            container.innerHTML = `
+                <div class="cart-layout">
+                    <div class="cart-items">${items}</div>
+                    <div class="cart-summary">
+                        <h3>Итого</h3>
+                        <div class="summary-row"><span>Товары (${cart.reduce((s,i)=>s+i.quantity,0)} шт.)</span><span>${formatPrice(subtotal)}</span></div>
+                        <div class="summary-row"><span>Доставка</span><span>${delivery === 0 ? 'Бесплатно' : formatPrice(delivery)}</span></div>
+                        <div class="summary-row total"><span>К оплате</span><span>${formatPrice(subtotal + delivery)}</span></div>
+                        <button class="btn btn-gold btn-block" onclick="openPaymentModal()">Оформить заказ</button>
+                    </div>
+                </div>`;
+        }
+
+        function changeQty(id, delta) {
+            const cart = getCart();
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            item.quantity += delta;
+            if (item.quantity < 1) item.quantity = 1;
+            saveCart(cart);
+            renderCart();
+        }
+
+        function removeFromCart(id) {
+            const cart = getCart().filter(i => i.id !== id);
+            saveCart(cart);
+            renderCart();
+            showToast('Товар удалён из корзины');
+        }
+
+        function openPaymentModal() {
+            if (!getCurrentUser()) {
+                showToast('Сначала войдите в аккаунт', 'error');
+                setTimeout(() => window.location.href = 'login.html', 900);
+                return;
+            }
+            document.getElementById('paymentModal').classList.add('show');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('show');
+        }
+
+        function confirmOrder() {
+            const user = getCurrentUser();
+            const cart = getCart();
+            if (cart.length === 0) return;
+
+            const method = document.querySelector('input[name="payment"]:checked').value;
+            const methodNames = { card: 'Банковская карта', cash: 'Наличными', online: 'Онлайн-кошелёк' };
+
+            const items = cart.map(i => {
+                const p = getProduct(i.id);
+                return { id: p.id, name: p.name, price: p.price, quantity: i.quantity, image: p.image };
+            });
+
+            const total = items.reduce((s, i) => s + i.price * i.quantity, 0);
+            const delivery = total > 10000 ? 0 : 490;
+
+            const order = {
+                id: 'ORD-' + Date.now(),
+                date: new Date().toLocaleString('ru-RU'),
+                email: user.email,
+                items,
+                total: total + delivery,
+                payment: methodNames[method],
+                status: method === 'cash' ? 'pending' : 'paid'
+            };
+
+            const orders = getOrders();
+            orders.unshift(order);
+            saveOrders(orders);
+
+            saveCart([]);
+            closePaymentModal();
+            showToast('Заказ оформлен! Спасибо за покупку 🎉');
+
+            setTimeout(() => window.location.href = 'orders.html', 1000);
+        }
+
+        // Выбор способа оплаты
+        document.querySelectorAll('.payment-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                opt.querySelector('input').checked = true;
+            });
+        });
+
+        renderCart();
+    </script>
+</body>
+</html>

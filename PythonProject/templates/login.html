@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход | MODA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header>
+        <div class="container header-inner">
+            <a href="index.html" class="logo">MO<span>DA</span></a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Главная</a></li>
+                    <li><a href="index.html#catalog">Каталог</a></li>
+                    <li><a href="/favorites">Избранное</a></li>
+                    <li><a href="/orders">Мои заказы</a></li>
+                </ul>
+            </nav>
+            <div class="header-icons">
+                <a href="/favorites" title="Избранное">♡<span class="counter fav-counter" style="display:none;">0</span></a>
+                <a href="/cart" title="Корзина">🛒<span class="counter cart-counter" style="display:none;">0</span></a>
+                <a href="/register" title="Регистрация">👤</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="auth-wrapper">
+        <div class="auth-card">
+            <h2>Добро пожаловать</h2>
+            <p class="subtitle">Войдите в свой аккаунт MODA</p>
+
+            <div id="alertBox" class="alert"></div>
+
+            <form id="loginForm" novalidate>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" placeholder="Введите пароль" required>
+                </div>
+
+                <button type="submit" class="btn btn-block">Войти</button>
+            </form>
+
+            <div class="auth-footer">
+                Нет аккаунта? <a href="/register">Зарегистрироваться</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        const form = document.getElementById('loginForm');
+        const alertBox = document.getElementById('alertBox');
+
+        function showAlert(msg, type = 'error') {
+            alertBox.textContent = msg;
+            alertBox.className = 'alert show alert-' + type;
+        }
+
+        // Если уже авторизован — на главную
+        if (getCurrentUser()) {
+            window.location.href = 'index.html';
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showAlert('Заполните все поля');
+                return;
+            }
+
+            const users = getUsers();
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (!user) {
+                showAlert('Неверный email или пароль');
+                return;
+            }
+
+            setCurrentUser({ name: user.name, email: user.email });
+            showAlert('Вход выполнен! Перенаправление...', 'success');
+            setTimeout(() => window.location.href = 'index.html', 800);
+        });
+    </script>
+</body>
+</html>

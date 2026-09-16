@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Избранное | MODA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header>
+        <div class="container header-inner">
+            <a href="index.html" class="logo">MO<span>DA</span></a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Главная</a></li>
+                    <li><a href="index.html#catalog">Каталог</a></li>
+                    <li><a href="/favorites" class="active">Избранное</a></li>
+                    <li><a href="/orders">Мои заказы</a></li>
+                </ul>
+            </nav>
+            <div class="header-icons">
+                <span class="user-greeting"></span>
+                <a href="/favorites" title="Избранное">♡<span class="counter fav-counter" style="display:none;">0</span></a>
+                <a href="/cart" title="Корзина">🛒<span class="counter cart-counter" style="display:none;">0</span></a>
+                <a href="/login" class="login-link" title="Войти">👤</a>
+                <a href="#" class="logout-link" onclick="handleLogout(event)" title="Выйти" style="display:none;">🚪</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="products">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Избранное</h2>
+                    <p>Товары, которые вам понравились</p>
+                    <div class="divider"></div>
+                </div>
+                <div id="favContent"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col"><h4>MODA</h4><p>Магазин стильной одежды.</p></div>
+                <div class="footer-col"><h4>Покупателям</h4>
+                    <ul><li><a href="/cart">Корзина</a></li><li><a href="/favorites">Избранное</a></li><li><a href="orders.html">Мои заказы</a></li></ul>
+                </div>
+                <div class="footer-col"><h4>Аккаунт</h4>
+                    <ul><li><a href="/login">Вход</a></li><li><a href="/register">Регистрация</a></li></ul>
+                </div>
+                <div class="footer-col"><h4>Контакты</h4><p>+7 (495) 123-45-67</p></div>
+            </div>
+        </div>
+        <div class="footer-bottom"><div class="container">© 2026 MODA. Все права защищены.</div></div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function renderFavorites() {
+            const favs = getFavorites();
+            const container = document.getElementById('favContent');
+
+            if (favs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">♡</div>
+                        <h3>В избранном пусто</h3>
+                        <p>Нажимайте на сердечко у товара, чтобы добавить его сюда</p>
+                        <a href="index.html" class="btn">Перейти в каталог</a>
+                    </div>`;
+                return;
+            }
+
+            const products = favs.map(id => getProduct(id)).filter(Boolean);
+            container.innerHTML = `<div class="product-grid">${products.map(p => `
+                <div class="product-card">
+                    <div class="product-image">
+                        ${p.badge ? `<span class="badge ${p.badge === 'NEW' ? 'new' : ''}">${p.badge}</span>` : ''}
+                        <button class="fav-btn active" onclick="toggleFavAndRerender(${p.id})">♥</button>
+                        <img src="${p.image}" alt="${p.name}">
+                    </div>
+                    <div class="product-info">
+                        <h3>${p.name}</h3>
+                        <div class="category-label">${p.category}</div>
+                        <div class="product-price">
+                            <span class="current">${formatPrice(p.price)}</span>
+                            ${p.oldPrice ? `<span class="old">${formatPrice(p.oldPrice)}</span>` : ''}
+                        </div>
+                        <button class="add-to-cart ${isInCart(p.id) ? 'in-cart' : ''}" onclick="addToCartAndRerender(${p.id})">
+                            ${isInCart(p.id) ? '✓ В корзине' : 'В корзину'}
+                        </button>
+                    </div>
+                </div>`).join('')}</div>`;
+        }
+
+        function toggleFavAndRerender(id) {
+            toggleFavorite(id);
+            renderFavorites();
+        }
+
+        function addToCartAndRerender(id) {
+            addToCart(id);
+            renderFavorites();
+        }
+
+        renderFavorites();
+    </script>
+</body>
+</html>
